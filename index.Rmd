@@ -1,0 +1,1943 @@
+---
+title: "MAR P2 new libraries"
+author: "Karol Cichewicz"
+date: "3/16/2020"
+output:
+  html_document:
+    code_folding: hide
+    css: style.css
+    df_print: default
+    theme: spacelab
+    toc: yes
+    toc_depth: 4
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+urlcolor: blue
+---
+
+
+# Data pre-processing
+
+Fastq files were downloaded to:
+/share/nordlab/rawdata/MAA/RNAseq/PoolA
+/share/nordlab/rawdata/MAA/RNAseq/PoolB
+/share/nordlab/rawdata/MAA/RNAseq/PoolA/Data/iwnsyj6ovo/Unaligned/Project_ANKC_L2_H2026P_CichewiczA$
+/share/nordlab/rawdata/MAA/RNAseq/PoolB/Data/68xqoqvb4/Unaligned/Project_ANKC_L3_H2026P_CichewiczB$
+
+
+Uisng the following scripts:
+wget -r -nH -nc -R index.html* http://slimsdata.genomecenter.ucdavis.edu/Data/iwnsyj6ovo/Unaligned/
+wget -r -nH -nc -R index.html* http://slimsdata.genomecenter.ucdavis.edu/Data/68xqoqvb4/Unaligned
+
+
+All fastq files were then copied to /share/nordlab/users/kcichewicz/MAA/data/fastq/
+
+
+## Read quality control using FastQC
+
+FastQC was run as follows:
+ #!/bin/sh
+ #SBATCH --job-name=cp_data
+ #SBATCH --time=02:00:00
+ #SBATCH --mem=16000
+ #SBATCH --ntasks=8
+
+/share/nordlab/users/kcichewicz/bin/FastQC/fastqc \
+--threads 8 \
+--outdir /share/nordlab/users/kcichewicz/MAA/fastqc \
+/share/nordlab/users/kcichewicz/MAA/data/fastq/*fastq.gz
+
+
+Output files were copied to the Google drive: 
+
+scp -r kcichewicz@barbera.genomecenter.ucdavis.edu:/share/nordlab/users/kcichewicz/MAA/fastqc/* /mnt/G_drive/Nord\ Lab
+\ -\ Personal\ Folders/Karol/MAA\,\ new\ libraries/Data\ analysis/FastQC/
+
+### FastQC reports
+
+[1_R1_FastQC_report](./fastQC/1_S2_L002_R1_001_fastqc.html)
+[1_R2_FastQC_report](./fastQC/1_S2_L002_R2_001_fastqc.html)
+
+[2_R1_FastQC_report](./fastQC/2_S10_L003_R1_001_fastqc.html)
+[2_R2_FastQC_report](./fastQC/2_S10_L003_R2_001_fastqc.html)
+
+[3_R1_FastQC_report](./fastQC/3_S3_L002_R1_001_fastqc.html)
+[3_R2_FastQC_report](./fastQC/3_S3_L002_R2_001_fastqc.html)
+
+[4_R1_FastQC_report](./fastQC/4_S4_L002_R1_001_fastqc.html)
+[4_R2_FastQC_report](./fastQC/4_S4_L002_R2_001_fastqc.html)
+
+[5_R1_FastQC_report](./fastQC/5_S11_L003_R1_001_fastqc.html)
+[5_R2_FastQC_report](./fastQC/5_S11_L003_R2_001_fastqc.html)
+
+[6_R1_FastQC_report](./fastQC/6_S12_L003_R1_001_fastqc.html)
+[6_R2_FastQC_report](./fastQC/6_S12_L003_R2_001_fastqc.html)
+
+[7_R1_FastQC_report](./fastQC/7_S13_L003_R1_001_fastqc.html)
+[7_R2_FastQC_report](./fastQC/7_S13_L003_R2_001_fastqc.html)
+
+[8_R1_FastQC_report](./fastQC/8_S5_L002_R1_001_fastqc.html)
+[8_R2_FastQC_report](./fastQC/8_S5_L002_R2_001_fastqc.html)
+
+[9_R1_FastQC_report](./fastQC/9_S14_L003_R1_001_fastqc.html)
+[9_R2_FastQC_report](./fastQC/9_S14_L003_R2_001_fastqc.html)
+
+[10_R1_FastQC_report](./fastQC/10_S6_L002_R1_001_fastqc.html)
+[10_R2_FastQC_report](./fastQC/10_S6_L002_R2_001_fastqc.html)
+
+[11_R1_FastQC_report](./fastQC/11_S7_L002_R1_001_fastqc.html)
+[11_R2_FastQC_report](./fastQC/11_S7_L002_R2_001_fastqc.html)
+
+[12_R1_FastQC_report](./fastQC/12_S8_L002_R1_001_fastqc.html)
+[12_R2_FastQC_report](./fastQC/12_S8_L002_R2_001_fastqc.html)
+
+[13_R1_FastQC_report](./fastQC/13_S15_L003_R1_001_fastqc.html)
+[13_R2_FastQC_report](./fastQC/13_S15_L003_R2_001_fastqc.html)
+
+[14_R1_FastQC_report](./fastQC/14_S9_L002_R1_001_fastqc.html)
+[14_R2_FastQC_report](./fastQC/14_S9_L002_R2_001_fastqc.html)
+
+[15_R1_FastQC_report](./fastQC/15_S16_L003_R1_001_fastqc.html)
+[15_R2_FastQC_report](./fastQC/15_S16_L003_R2_001_fastqc.html)
+
+
+
+## Adapter removal using NGmerge
+
+FastQC identified Illumina adaptor contamination beginning in bases >75bp, reaching 30% of the read content at 150 bp. The sequencing run was 150 bp paired end (2x150bp). This issue is not unusual, especially considering long PE reads and standart library prep procedure, which may be more suited for 2x75 bp libraries. Just a few years ago 2x75bp reads were considered a "sweet spot" for RNA-seq. I trimmed off the adaptors using NGmerge, which uses a very clever approach for detecting overlapping reads and trimming sticking edges containing adaptor seqneices. More details about the method can be found here: https://github.com/jsh58/NGmerge 
+
+NGmerge was run as follows:
+ #!/bin/sh
+ #SBATCH --job-name=cp_data
+ #SBATCH --time=30:00:00
+ #SBATCH --mem=16000
+ #SBATCH --ntasks=12
+
+/share/nordlab/users/kcichewicz/bin/NGmerge-master/NGmerge \
+-a \
+-u 41 \
+-n 12 \
+-1 /share/nordlab/users/kcichewicz/MAA/data/fastq/1_*R1*.fastq.gz \
+-2 /share/nordlab/users/kcichewicz/MAA/data/fastq/1_*R2*.fastq.gz \
+-o 1
+done
+
+I've also run it using a loop going through file numbers 1 to 15 and compared the results to verify I didn't make an error manually editing the files.
+
+FastQC was rerun as follows:
+ #!/bin/sh
+ #SBATCH --job-name=cp_data
+ #SBATCH --time=02:00:00
+ #SBATCH --mem=16000
+ #SBATCH --ntasks=15
+
+/share/nordlab/users/kcichewicz/bin/FastQC/fastqc \
+--threads 15 \
+--outdir /share/nordlab/users/kcichewicz/MAA/fastqc_NGmerge \
+/share/nordlab/users/kcichewicz/MAA/data/fastq_NGmerge/*fastq.gz
+
+
+Output files were copied as follows:
+scp -r kcichewicz@barbera.genomecenter.ucdavis.edu:/share/nordlab/users/kcichewicz/MAA/fastqc_NGmerge/* /mnt/G_drive/Nord\ Lab\ -\ Personal\ Folders/Karol/MAA\,\ new\ libraries/Data\ analysis/FastQC_NGmerge
+
+Trimmed reads demonstrated dramatically reduced Adapter contant, but in the Overexpressed sequences tab Illumina PCR primers were still indicated. I suspect this may be due to sequence marking by NGmerge (???). I'll run a quick test comparing alignment of per and post trimming sequences.
+
+### Post-NGmerge trimmed FastQC reports
+
+[1_R1_FastQC_trimmed_report](./fastQC_NGmerge/1_1_fastqc.html)
+[1_R2_FastQC_trimmed_report](./fastQC_NGmerge/1_2_fastqc.html)
+
+[2_R1_FastQC_trimmed_report](./fastQC_NGmerge/2_1_fastqc.html)
+[2_R2_FastQC_trimmed_report](./fastQC_NGmerge/2_2_fastqc.html)
+
+[3_R1_FastQC_trimmed_report](./fastQC_NGmerge/3_1_fastqc.html)
+[3_R2_FastQC_trimmed_report](./fastQC_NGmerge/3_2_fastqc.html)
+
+[4_R1_FastQC_trimmed_report](./fastQC_NGmerge/4_1_fastqc.html)
+[4_R2_FastQC_trimmed_report](./fastQC_NGmerge/4_2_fastqc.html)
+
+[5_R1_FastQC_trimmed_report](./fastQC_NGmerge/5_1_fastqc.html)
+[5_R2_FastQC_trimmed_report](./fastQC_NGmerge/5_2_fastqc.html)
+
+[6_R1_FastQC_trimmed_report](./fastQC_NGmerge/6_1_fastqc.html)
+[6_R2_FastQC_trimmed_report](./fastQC_NGmerge/6_2_fastqc.html)
+
+[7_R1_FastQC_trimmed_report](./fastQC_NGmerge/7_1_fastqc.html)
+[7_R2_FastQC_trimmed_report](./fastQC_NGmerge/7_2_fastqc.html)
+
+[8_R1_FastQC_trimmed_report](./fastQC_NGmerge/8_1_fastqc.html)
+[8_R2_FastQC_trimmed_report](./fastQC_NGmerge/8_2_fastqc.html)
+
+[9_R1_FastQC_trimmed_report](./fastQC_NGmerge/9_1_fastqc.html)
+[9_R2_FastQC_trimmed_report](./fastQC_NGmerge/9_2_fastqc.html)
+
+[10_R1_FastQC_trimmed_report](./fastQC_NGmerge/10_1_fastqc.html)
+[10_R2_FastQC_trimmed_report](./fastQC_NGmerge/10_2_fastqc.html)
+
+[11_R1_FastQC_trimmed_report](./fastQC_NGmerge/11_1_fastqc.html)
+[11_R2_FastQC_trimmed_report](./fastQC_NGmerge/11_2_fastqc.html)
+
+[12_R1_FastQC_trimmed_report](./fastQC_NGmerge/12_1_fastqc.html)
+[12_R2_FastQC_trimmed_report](./fastQC_NGmerge/12_2_fastqc.html)
+
+[13_R1_FastQC_trimmed_report](./fastQC_NGmerge/13_1_fastqc.html)
+[13_R2_FastQC_trimmed_report](./fastQC_NGmerge/13_2_fastqc.html)
+
+[14_R1_FastQC_trimmed_report](./fastQC_NGmerge/14_1_fastqc.html)
+[14_R2_FastQC_trimmed_report](./fastQC_NGmerge/14_2_fastqc.html)
+
+[15_R1_FastQC_trimmed_report](./fastQC_NGmerge/15_1_fastqc.html)
+[15_R2_FastQC_trimmed_report](./fastQC_NGmerge/15_2_fastqc.html)
+
+Sequence length distribution indicates reduced and variable read length distribution now, which demonstrates that NGmerge run correctly.
+
+
+## Alignment with STAR
+
+I'm using Ensembl Rnor_6.0 reference genome. This is the same genome as the one curated by the Illumina iGenomes. 
+
+STAR index was prepared as follows:
+
+ #!/bin/sh
+ #SBATCH --job-name=STAR_index_gen
+ #SBATCH --time=02:00:00
+ #SBATCH --mem=64000
+ #SBATCH --ntasks=8
+
+/share/nordlab/users/kcichewicz/bin/STAR/source/STAR \
+--runMode genomeGenerate \
+--runThreadN 8 \
+--genomeDir /share/nordlab/users/kcichewicz/MAA/scripts/STAR_index/ \
+--genomeFastaFiles /share/nordlab/genomes/Rattus_norvegicus/Ensembl/Rnor_6.0/Sequence/WholeGenomeFasta/genome.fa \
+--sjdbGTFfile /share/nordlab/genomes/Rattus_norvegicus/Ensembl/Rnor_6.0/Annotation/Genes/genes_Ensembl_Rnor_6.gtf \
+--sjdbOverhang 149
+
+
+###Alignment
+
+ #!/bin/sh
+ #SBATCH --job-name=STAR_index_gen
+ #SBATCH --time=03:00:00
+ #SBATCH --mem=64000
+ #SBATCH --ntasks=16
+
+/share/nordlab/users/kcichewicz/bin/STAR/source/STAR \
+--runMode alignReads \
+--runThreadN 16 \
+--genomeDir /share/nordlab/users/kcichewicz/MAA/scripts/STAR_index/ \
+--readFilesCommand gunzip -c \
+--readFilesIn \
+/share/nordlab/users/kcichewicz/MAA/data/fastq_NGmerge/1_1.fastq.gz \
+/share/nordlab/users/kcichewicz/MAA/data/fastq_NGmerge/1_2.fastq.gz \
+--outSAMtype BAM SortedByCoordinate
+
+
+#### Alignment statistics 
+
+Alignment was inspected using the following scripts: less 1/Log.out | tail
+
+for i in {1..15};do echo ${i}; less BAMs/${i}/${i}_Log.out | tail -n 3; done | less > Log.out.combined.txt                              
+for i in {1..15};do echo ${i}; less BAMs/${i}/${i}_Log.final.out; done | less > Log.out.final.combined.txt
+
+I run a test alignment on sample #1 with fastq files that were not trimmed. The alignment rate of uniquely mapped reads dropped from 69.23% to 59.50%. Uniquely mapped read numbers were 22,792,149 and 19,587,785, respectively. After trimming the average mapped length was 280.27, compared with 288.28 (STAR sums the lengths of both PE reads in this stat). This indicates that NGmerge correctly trimmed off the adaptors, which benefited the alignment.  
+
+
+### Samtools sorting and indexing:
+ 
+ #!/bin/sh
+ #SBATCH --job-name=STAR_index_gen
+ #SBATCH --time=03:00:00
+ #SBATCH --mem=64000
+ #SBATCH --ntasks=16
+
+sample=1
+
+/share/nordlab/users/kcichewicz/bin/samtools-1.10/samtools sort \
+-@ 16 \
+/share/nordlab/users/kcichewicz/MAA/UCSC_Rn_6_analysis/BAMs/${sample}/${sample}_Aligned.sortedByCoord.out.bam \
+-o /share/nordlab/users/kcichewicz/MAA/UCSC_Rn_6_analysis/sorted_BAMs/${sample}_sorted.bam
+
+/share/nordlab/users/kcichewicz/bin/samtools-1.10/samtools index \
+-@ 16 \
+/share/nordlab/users/kcichewicz/MAA/UCSC_Rn_6_analysis/sorted_BAMs/${sample}_sorted.bam
+
+
+### FeatureCounts
+
+ #!/bin/sh
+ #SBATCH --job-name=STAR_index_gen
+ #SBATCH --time=03:00:00
+ #SBATCH --mem=64000
+ #SBATCH --ntasks=16
+
+/share/nordlab/users/kcichewicz/bin/subread-2.0.0-Linux-x86_64/bin/featureCounts \
+-a /share/nordlab/genomes/Rattus_norvegicus/Ensembl/Rnor_6.0/Annotation/Genes/genes.gtf \
+-o ./feature_counts_st_1.txt \
+-T 16 \
+-t exon \
+-g gene_id \
+-s 1 \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/1/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/2/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/3/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/4/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/5/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/6/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/7/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/8/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/9/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/10/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/11/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/12/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/13/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/14/Aligned.sortedByCoord.out.bam \
+/share/nordlab/users/kcichewicz/MAA/scripts/STAR_alignment/15/Aligned.sortedByCoord.out.bam
+
+
+#Data analysis
+
+```{r, message=FALSE, error=FALSE, echo=TRUE, cache=FALSE}
+
+library(sva)
+library(RUVnormalize)
+library(pheatmap)
+library(edgeR)
+library(GenomicFeatures)
+library(mclust)
+library(parallel)
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+library(data.table)
+library(DT)
+library(RColorBrewer)
+library(knitr)
+library(ggrepel)
+library(gridExtra)
+library(grid)
+library(plyr)
+library(plotly)
+library(Hmisc)
+
+
+```
+
+## Data quality control
+
+### Stats from the alignment log
+
+* Libraries have surprising variability in the number of reads. This maight have been caused by imprecise pooling by the core. Nevertheless all samples have satisfactory sequencing depth.    
+
+```{r RNA-seq 1, fig.height = 16, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+setwd("G:/Shared drives/Nord Lab - Personal Folders/Karol/MAA, new libraries/Data analysis/Ensembl_Rn6_analysis/")
+
+#https://stackoverflow.com/questions/19252663/extracting-decimal-numbers-from-a-string
+
+Log <- readLines("Log.final.out.combined.txt")
+
+# Extracting lines with % of uniquely mapped reads 
+str <- Log[seq(11, 38*15, 38)]
+
+#Extracting numerical values of % of uniquely mapped reads  
+uniq_mapped_reads_frac <- as.numeric(regmatches(str,regexpr("[[:digit:]]+\\.[[:digit:]]+",str)))
+
+df <- data.frame(sample = c(1:15), 
+                 "metric" = rep("Uniquely mapped reads %", 15),
+                 "uniq_mapped_reads_frac" = uniq_mapped_reads_frac)
+
+p1 <- ggplot(df, aes(x = sample, y = uniq_mapped_reads_frac))+
+        geom_bar(stat="identity")+
+        theme_bw()+
+        scale_x_continuous(breaks = scales::pretty_breaks(n = 15))+
+        labs(x = "", y = "[%]")+
+        labs(title = "Uniquely mapped reads")+
+        theme(plot.title = element_text(size = rel(2), hjust=0.5))+
+        theme(axis.text.x = element_text(size=14), text = element_text(size=14))
+
+
+# Extracting lines with % multimapped reads 
+str <- Log[seq(26, 38*15, 38)]
+#str
+str_p <- as.numeric(regmatches(str,regexpr("[[:digit:]]+\\.[[:digit:]]+",str)))
+
+df <- data.frame(sample = c(1:15), 
+                 "metric" = rep("Reads mapped to multiple loci", 15),
+                 "Reads mapped to multiple loci" = str_p)
+
+p2 <- ggplot(df, aes(x = sample, y = Reads.mapped.to.multiple.loci))+
+        geom_bar(stat="identity")+
+        theme_bw()+
+        scale_x_continuous(breaks = scales::pretty_breaks(n = 15))+
+        scale_y_continuous(breaks = scales::pretty_breaks(n = 6))+
+        labs(x = "Sample", y = "[%]")+
+        labs(title = "Reads mapped to multiple loci")+
+        theme(plot.title = element_text(size = rel(2), hjust=0.5))+
+        theme(axis.text.x = element_text(size=14), text = element_text(size=14))
+
+
+
+#Numbers of input reads 
+str <- Log[seq(7, 38*15, 38)]
+str_p <- as.numeric(regmatches(str,regexpr("[[:digit:]]+",str)))
+
+df <- data.frame(sample = c(1:15), 
+                 "metric" = rep("Number of input reads", 15),
+                 "Number of input reads" = str_p)
+
+p3 <- ggplot(df, aes(x = sample, y = Number.of.input.reads/10^6))+
+        geom_bar(stat="identity")+
+        theme_bw()+
+        scale_x_continuous(breaks = scales::pretty_breaks(n = 15))+
+        labs(x = "", y = "[millions]")+
+        scale_y_continuous(breaks = scales::pretty_breaks(n = 6))+
+        labs(title = "Number of input reads")+
+        theme(plot.title = element_text(size = rel(2), hjust=0.5))+
+        theme(axis.text.x = element_text(size=14), text = element_text(size=14))
+
+pl <- list(p3, p1, p2)
+ml <- marrangeGrob(pl, nrow=3, ncol=1, top = "")
+ml
+
+```
+
+
+```{r RNA-seq 2, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+###Generate Rn6 list of exon sizes 
+# Method description at: https://www.biostars.org/p/83901/
+
+txdb <- makeTxDbFromGFF("genes_Ensembl_Rnor_6.gtf", format="gtf")
+exons.list.per.gene <- exonsBy(txdb, by="gene")
+
+#I paralelized this increasing the speed of the process >2x on a 4-core (logical) machine. 
+#Use mclapply instead of parLapply if you use a Mac.
+cl <- makeCluster(detectCores())
+exonic.gene.sizes <- parallel::parLapply(cl, exons.list.per.gene,function(x){sum(width(reduce(x)))})
+stopCluster(cl)
+
+```
+
+
+```{r RNA-seq 3, fig.height = 16, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+setwd("G:/Shared drives/Nord Lab - Personal Folders/Karol/MAA, new libraries/Data analysis/Ensembl_Rn6_analysis")
+
+count_data <- read.table("feature_counts.txt", header = TRUE)
+metadata <- read.csv("MAA_metadata.csv")
+
+colnames(metadata)[1] <- "Sample"
+
+colnames(count_data) <- c(colnames(count_data)[1:6], paste0("Sample","_", seq(1, 15, 1)))
+
+#head(count_data)
+
+#[1] snoRNA               lincRNA              miRNA               
+#[4] pseudogene           snRNA                processed_pseudogene
+#[7] protein_coding       rRNA                 misc_RNA            
+#[10] ribozyme            scaRNA               sRNA                
+#[13] Mt_tRNA             Mt_rRNA          
+
+#I'm not sure if this is necessary
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+#BiocManager::install("GenomicFeatures")
+#browseVignettes("GenomicFeatures")
+
+# This blog post explains a proper way to load and summarize a GTF file:
+#https://davetang.org/muse/2017/08/04/read-gtf-file-r/
+
+setwd("G:/Shared drives/Nord Lab - Personal Folders/Karol/MAA, new libraries/Data analysis/Ensembl_Rn6_analysis")
+
+#install.packages("refGenome")
+library(refGenome)
+
+# create ensemblGenome object for storing Ensembl genomic annotation data
+ens <- ensemblGenome()
+
+# read GTF file into ensemblGenome object
+read.gtf(ens, "genes_Ensembl_Rnor_6.gtf")
+
+#tableFeatures(ens)
+my_gene <- getGenePositions(ens) # dataframe with corresponding gene_id, gene_name, and all other annotations
+
+#Gene_ids in the GTF file and count file overlap
+#head(my_gene)
+#head(count_data)
+
+#length(my_gene$gene_id)
+#length(unique(my_gene$gene_id))
+
+#length(count_data$Geneid)
+#length(unique(count_data$Geneid))
+
+#setdiff(my_gene$gene_id, count_data$Geneid)
+
+#Merge short gene names with count_data
+
+count_data2 <- merge(my_gene[,c(2,3)], count_data, by.x = "gene_id", by.y = "Geneid", all = T)
+#head(count_data2)
+
+count_data3 <- count_data2[,c(1,2, 7:22)] 
+
+```
+
+### Sex identification by Xist transcript count
+
+* There is no "Xist" gene annotation in the Ensembl database. I used ENSRNOG00000051257 gene id instead, which seems to be a homolog and/or within the Xist locus. Details for this resoning are in the code below.
+
+* Expression counts of this marker gene matches sample metadata
+
+```{r RNA-seq 4, fig.height = 5, fig.width = 7, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+#There is no "Xist" gene annotation in the Ensembl database.  
+#filter(count_data3, gene_name == "Xist")
+
+#I found the following info about the gene orthologs:
+
+#mouse Xist orthologs: https://www.ncbi.nlm.nih.gov/gene/213742/ortholog/?scope=39107
+# LOC100911498 - NCBI?
+# Ensembl Rn5: ENSRNOG00000051257.1: http://mar2015.archive.ensembl.org/Rattus_norvegicus/Gene/Summary?db=core;g=ENSRNOG00000051257;r=X:75138545-75143191
+#Ensembl RN6: http://uswest.ensembl.org/Rattus_norvegicus/Gene/Summary?db=core;g=ENSRNOG00000051257;r=X:74333329-74337975
+
+# This is a gene which is at least located within a homologous locus (please revisit later). Run DE analysis for sexes to double check if this is the right or best sex marker.
+
+df_xist <- melt(filter(count_data3, gene_id == "ENSRNOG00000051257")[,c(4:18)])
+
+metadata <- arrange(metadata, Sample)
+colnames(df_xist) <-  c("Sample_name", "Xist_exp")
+df_xist <- data.frame(df_xist, metadata[,c(1:3)])
+df_xist <- arrange(df_xist, Xist_exp)
+
+#It looks like a pretty good sex marker 
+knitr::kable(df_xist)
+
+ggplot(df_xist, aes(x = Sample, y = Xist_exp))+
+  geom_point(size = 2)+
+  theme_bw()+
+  labs(x= "Sample", y = "ENSRNOG00000051257 expression [counts]")+
+  scale_x_continuous(breaks = c(1:15))+
+  theme(axis.text.x = element_text(size=14), text = element_text(size=14))+
+  labs(title = "Sex marker expression across samples")+
+  theme(plot.title = element_text(size = rel(1.9), hjust=0.5))
+
+```
+
+### Estimation of rRNA content in the Ensembl alignment
+There is no Rn45s annotated in the Ensembl genome. Rn45s is a precoursor of 18S, 5.8S, and 28S rRNA. I found 5_8S_rRNA, 5S_rRNA, Rn5s, and Rn5-8s when I searched for genes annotated with rRNA biotype, each with multiple gene ids. I summed counts of these gene ids for each sample to estimate the content of each annotated rRNA. 
+
+```{r RNA-seq 5, fig.height = 10, fig.width = 18, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+#unique(my_gene$gene_biotype)
+
+#There is no Rn45s annotated in the Ensembl. Rn45s is a precoursor for 18S, 5.8S and 28S rRNA
+#unique(filter(my_gene, gene_biotype == "rRNA")$gene_name)
+
+rRNA_genes <- filter(my_gene, gene_biotype == "rRNA")
+
+#Lengths of these genes are very short. Rat Rn45s annotated at NCBI is ~12 kb long  
+#rRNA_genes$end - rRNA_genes$start
+
+#I'm using this gene subset only to assess if there may be any difference in rRNA content between samples, not how much rRNA is actually in these samples. I may need to look into the UCSC counts later.
+
+count_data3_rRNA <- filter(count_data3, gene_id %in% rRNA_genes$gene_id)
+
+count_data3_rRNA_m <- melt(count_data3_rRNA[,c(2, 4:18)])
+
+#Calculates sum of counts/each 
+DT<- data.table(count_data3_rRNA_m)
+  
+ p <- DT[,list(
+      Sum_of_rRNA_gene = as.numeric(sum(value))), by=c("gene_name", "variable")]
+ 
+ p$gene_name_sample <- paste0(p$gene_name, "_", p$variable)
+  
+ 
+ ggplot(p, aes(x = gene_name_sample, y = Sum_of_rRNA_gene, color = gene_name))+
+   geom_point(size = 3)+
+   theme_bw()+
+   theme(axis.text.x = element_text(angle = 90))+
+   labs(x = "", y = "Sum of rRNA gene counts")+
+   theme(axis.text.x = element_text(size=14), text = element_text(size=18))+
+   labs(title = "rRNA content estimation")+
+   theme(plot.title = element_text(size = rel(2), hjust=0.5))
+
+```
+
+### Estimation of rRNA content in the UCSC alignment
+
+* The rRNA content in the samples is minimal and does not affect their quantitation.
+
+```{r RNA-seq 6, fig.height = 5, fig.width = 10, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+setwd("G:/Shared drives/Nord Lab - Personal Folders/Karol/MAA, new libraries/Data analysis/UCSC_Rn6_analysis")
+
+count_data_UCSC <- read.table("feature_counts_no_st.txt", header = TRUE)
+#head(count_data_UCSC)
+colnames(count_data_UCSC) <- c(colnames(count_data_UCSC)[1:6], paste0("Sample","_", 1:15))
+
+#UCSC alignment contains Rn45s 
+#filter(count_data_UCSC, Geneid == "Rn45s")
+
+#But it doesn't have Xist though
+#filter(count_data_UCSC, Geneid == "Xist")
+
+Rn45s_UCSC <- melt(filter(count_data_UCSC, Geneid == "Rn45s"))[2:16,]
+
+#Raw Rn45s counts
+ggplot(Rn45s_UCSC, aes(x = variable, y = value))+
+  geom_point(size = 3)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(x = "", y = "[counts]")+
+  theme(axis.text.x = element_text(size=14), text = element_text(size=18))+
+  labs(title = "Rn45s counts")+
+  theme(plot.title = element_text(size = rel(2), hjust=0.5))
+
+
+#Rn45s read fraction
+#dim(count_data_UCSC)
+
+count_data_UCSC_not_Rn45s <- filter(count_data_UCSC, Geneid != "Rn45s")[,c(1, 7:21)]
+
+non_rRNA_counts <- melt(colSums(count_data_UCSC_not_Rn45s[,c(2:16)]))
+
+#dim(count_data_UCSC_not_Rn45s)
+
+
+df <- data.frame("Sample" = rownames(non_rRNA_counts), "non_rRNA_counts" = non_rRNA_counts$value, "Rn45s_counts" = Rn45s_UCSC$value)
+
+df$All_reads = df$non_rRNA_counts  + df$Rn45s_counts
+
+df$Rn45s_percentage <- (df$Rn45s_counts / df$non_rRNA_counts) * 100
+
+#FIxing the order
+df$Sample <- factor(df$Sample, levels = df$Sample)
+df <- arrange(df, Sample)
+
+
+#The number of Rn45s counts makes a tiny fraction of all reads demonstrating good performance of the ribosomal depletion.
+ggplot(df, aes(x = Sample, y = Rn45s_percentage))+
+  geom_point(size = 3)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(x = "", y = "[%]")+
+  theme(axis.text.x = element_text(size=14), text = element_text(size=18))+
+  labs(title = "Rn45s fraction of all reads ")+
+  theme(plot.title = element_text(size = rel(2), hjust=0.5))
+
+
+
+#Sequencign depth after read alignment. Values represent concordant paired-end fragments and not individual reads.
+ggplot(df, aes(x = Sample, y = All_reads / 10^6))+
+  geom_point(size = 3)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(x = "", y = "[Millions of PE fragments]")+
+  theme(axis.text.x = element_text(size=14), text = element_text(size=18))+
+  labs(title = "Total number of aligned reads")+
+  theme(plot.title = element_text(size = rel(2), hjust=0.5))
+
+```
+
+# DE analysis with the dataset aligned to the Ensembl Rn6 genome
+
+## Dimensionality reduction plots
+
+###Summary
+* There are no obvious outliers
+* Sequencing lane (batch) does not separate samples
+* Condition (Ctrl va MAR) does not have any dramatic effect on MDS clustering
+* Sex divides samples along the PC1 axis
+
+```{r RNA-seq 7, fig.height = 7, fig.width = 12, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+min.cpm.criteria <- 0.1 # really relaxed
+test.data <- count_data[, 7:21]
+rownames(test.data) <- count_data$Geneid
+
+#colnames(test.data) <- paste(sample.info$ExperimentalDesign, 1:102, sep = "_")
+test.samples <- 1:nrow(metadata)
+min.cpm <- min.cpm.criteria
+
+y <- DGEList(counts=test.data, group=metadata$Condition)
+keep <- rowSums(cpm(y)>min.cpm) >=2 #keeps only genes expressed in above min.cpm in at least 2 libraries in each group 
+y <- y[keep, , keep.lib.sizes=FALSE]
+y <- calcNormFactors(y) # Normalizes for RNA composition
+y <- estimateCommonDisp(y) # Estimates common dispersions. Calculates pseudo-counts, a type of normalized counts. Don't misteke them with 0+x type counts from other packages. Also "users are advised not to interpret the psuedo-counts as general-purpose normalized counts".
+y <- estimateTagwiseDisp(y) #Estimates dispersions. Applicable only to experiments with single factor.
+#Alternatively the two commands from above can be replaced with y <- estimateDisp(y)
+
+metadata <- arrange(metadata, Sample)
+
+#MDS plot using ggplot.
+MDS_data <- plotMDS(y, plot = FALSE)
+
+MDS_data2 <- data.frame(Leading_logFC_dim_1 = MDS_data$x, Leading_logFC_dim_2=MDS_data$y)
+
+MDS_data2 <- data.frame(Samples=rownames(MDS_data2), MDS_data2, metadata)
+rownames(MDS_data2) <- NULL
+
+# MDS Plot with colored DPC
+#Condition and sex
+MDS_colored_DPC <- ggplot(MDS_data2, aes(x=Leading_logFC_dim_1, y=Leading_logFC_dim_2, colour=Condition, shape=Sex))+
+  geom_point(size=6, alpha=0.6)+
+  theme_bw()+
+  labs(title = "MDS plot")+
+  theme(plot.title = element_text(size = rel(1.5), hjust=0.5))+
+  theme(axis.text.x = element_text(size=14), text = element_text(size=18))
+
+MDS_colored_DPC
+
+#Lane (batch)
+MDS_colored_DPC <- ggplot(MDS_data2, aes(x=Leading_logFC_dim_1, y=Leading_logFC_dim_2, colour=as.factor(Lane)))+
+  geom_point(size=6, alpha=0.6)+
+  theme_bw()+
+  labs(title = "MDS plot")+
+  theme(plot.title = element_text(size = rel(1.5), hjust=0.5))+
+  theme(axis.text.x = element_text(size=14), text = element_text(size=18))
+
+MDS_colored_DPC
+
+#RNA isolation batch
+MDS_colored_DPC <- ggplot(MDS_data2, aes(x=Leading_logFC_dim_1, y=Leading_logFC_dim_2, colour=as.factor(RNA.isolation.batch)))+
+  geom_point(size=6, alpha=0.6)+
+  theme_bw()+
+  labs(title = "MDS plot")+
+  theme(plot.title = element_text(size = rel(1.5), hjust=0.5))+
+  theme(axis.text.x = element_text(size=14), text = element_text(size=18))
+
+MDS_colored_DPC
+
+```
+
+## DE analysis using edgeR GLM
+
+* Due to samples separation by sex in the MDS plots, I provided sex as a covariate to the model to regress its effects out. I'll explore the sex-specific effects separately. 
+
+```{r RNA-seq 8, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+min.cpm.criteria <- 0.1 # really relaxed
+rownames(count_data) <- count_data$Geneid 
+test.data <- count_data[, 7:21]
+
+Condition <- ifelse(metadata$Condition == "Ctrl", 1, 2)
+Sex <- as.factor(ifelse(metadata$Sex == "M", 1, 2))
+
+design <- model.matrix(~as.factor(Condition))
+
+y <- DGEList(counts=test.data, group=as.factor(Condition))
+
+keep <- rowSums(cpm(y)>min.cpm) >=2 #keeps only genes expressed in above min.cpm in at least 2 libraries in each group 
+y <- y[keep, , keep.lib.sizes=FALSE]
+y <- estimateGLMCommonDisp(y,design)
+y <- estimateGLMTrendedDisp(y,design)
+y <- estimateGLMTagwiseDisp(y,design)
+fit <- glmFit(y,design) 
+lrt <- glmLRT(fit) # Genewise Negative Binomial Generalized Linear Models.
+
+glm.output <- topTags(lrt, n=Inf)
+#write.table(glm.output$table, "DE_Full_PolyIC.txt", sep="\t", col.names=T, row.names=T, quote=F)
+glm.output.full <- glm.output$table
+
+glm.output.full$gene_name <- rownames(glm.output.full)
+rownames(glm.output.full) <- NULL
+
+#dim(glm.output.full)
+#dim(my_gene)
+
+glm.output.full2 <- merge(glm.output.full, my_gene[,c(2,3)], by.x = "gene_name", by.y = "gene_id")
+
+glm.output.full3 <- glm.output.full2[,c(1, 7, 2:6)]
+
+colnames(glm.output.full3) <- c("gene_id", "gene_name", "logFC", "logCPM", "LR", "PValue", "FDR")
+
+glm.output.full_En <-  glm.output.full3
+
+```
+
+### Interactive volcano plot
+
+```{r RNA-seq 9, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+### Volcano plot
+
+volcano_plot_text <- function(x, plot_title) {
+
+#x <- glm.output.full_En
+#plot_title <- "test"  
+  
+significance_threshold <- 0.05
+  
+#This is nicely dealing with datasets with missing cathegories.
+test <- ifelse(x$PValue, "Non significant", "")
+test <- ifelse(x$PValue <0.05, "PValue < 0.05", test)
+test <- ifelse(x$logFC > 1, "logFC > abs(1)", test)
+test <- ifelse(x$logFC < -1, "logFC > abs(1)", test)
+test <- ifelse(x$logFC > 1 & x$PValue <0.05, "PValue < 0.05 & logFC > abs(1)", test)
+test <- ifelse(x$logFC < -1 & x$PValue <0.05, "PValue < 0.05 & logFC > abs(1)", test)
+
+plotDat <- data.frame(x, Group=test)
+
+p <- ggplot(plotDat, aes(x = logFC, y=-log10(PValue), fill=Group, col = Group)) +
+  geom_point(aes(text=gene_name, size=pop), alpha = 0.7, size=1)+
+  theme_light()+
+  scale_fill_manual(values=c("Non significant"="black", "PValue < 0.05"="orange", "logFC > abs(1)"="green4", "PValue < 0.05 & logFC > abs(1)"="red"))+
+  scale_color_manual(values=c("Non significant"="black", "PValue < 0.05"="orange", "logFC > abs(1)"="green4", "PValue < 0.05 & logFC > abs(1)"="red"))+
+  labs(title= plot_title)+
+  theme(plot.title = element_text(size = rel(2), hjust=0.5))+
+  theme(legend.text=element_text(size=16))+
+  theme(axis.text=element_text(size=14))+
+  theme(legend.title=element_blank())+
+  theme(axis.text=element_text(size=14))+
+  theme(axis.title = element_text(size=14, face = "bold"))+
+  theme(legend.position="bottom")
+  #scale_x_continuous(limits = c(-7.5, 7.5))
+
+p
+}
+
+p <- volcano_plot_text(glm.output.full_En, "DE analysis with Ensembl Rn6 genome")
+#p
+```
+
+
+```{r RNA-seq 10, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+ggplotly(p) %>%
+  layout(legend = list(
+      orientation = "h",y = -0.1
+    )
+  )
+
+#Numbers of DE genes
+#nrow(filter(glm.output.full_En, FDR < 0.05))
+
+```
+
+
+###############################################
+
+# DE analysis with the dataset aligned to UCSC Rn6 genome
+
+## Dimensionality reduction plots
+* There are no obvious outliers
+* Sequencign lane (batch) does not separate samples
+* Conditions (Ctrl va MAR) does not have any dramatic effect on the MDS clustering
+* Sex divides samples along the PC1 axis. The effect is slightly less obvious than in the Ensembl alignment.
+
+```{r RNA-seq 11, fig.height = 7, fig.width = 12, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+min.cpm.criteria <- 0.1 # really relaxed
+test.data <- count_data_UCSC[, 7:21]
+rownames(test.data) <- count_data_UCSC$Geneid
+
+#colnames(test.data) <- paste(sample.info$ExperimentalDesign, 1:102, sep = "_")
+test.samples <- 1:nrow(metadata)
+min.cpm <- min.cpm.criteria
+y <- DGEList(counts=test.data, group=metadata$Condition)
+keep <- rowSums(cpm(y)>min.cpm) >=2 #keeps only genes expressed in above min.cpm in at least 2 libraries in each group 
+y <- y[keep, , keep.lib.sizes=FALSE]
+y <- calcNormFactors(y) # Normalizes for RNA composition
+y <- estimateCommonDisp(y) # Estimates common dispersions. Calculates pseudo-counts, a type of normalized counts. Don't misteke them with 0+x type counts from other packages. Also "users are advised not to interpret the psuedo-counts as general-purpose normalized counts".
+y <- estimateTagwiseDisp(y) #Estimates dispersions. Applicable only to experiments with single factor.
+#Alternatively the two commands from above can be replaced with y <- estimateDisp(y)
+
+#MDS plot using ggplot.
+MDS_data <- plotMDS(y, plot = FALSE)
+
+MDS_data2 <- data.frame(Leading_logFC_dim_1 = MDS_data$x, Leading_logFC_dim_2=MDS_data$y)
+
+MDS_data2 <- data.frame(Samples=rownames(MDS_data2), MDS_data2, metadata)
+rownames(MDS_data2) <- NULL
+
+# MDS Plot with colored DPC
+#Condition and sex
+MDS_colored_DPC <- ggplot(MDS_data2, aes(x=Leading_logFC_dim_1, y=Leading_logFC_dim_2, colour=Condition, shape=Sex))+
+  geom_point(size=6, alpha=0.6)+
+  theme_bw()+
+  labs(title = "MDS plot")+
+  theme(plot.title = element_text(size = rel(1.5), hjust=0.5))
+
+MDS_colored_DPC
+
+
+#Lane (batch)
+MDS_colored_DPC <- ggplot(MDS_data2, aes(x=Leading_logFC_dim_1, y=Leading_logFC_dim_2, colour=as.factor(Lane)))+
+  geom_point(size=6, alpha=0.6)+
+  theme_bw()+
+  labs(title = "MDS plot")+
+  theme(plot.title = element_text(size = rel(1.5), hjust=0.5))
+
+MDS_colored_DPC
+
+#RNA isolation batch
+MDS_colored_DPC <- ggplot(MDS_data2, aes(x=Leading_logFC_dim_1, y=Leading_logFC_dim_2, colour=as.factor(RNA.isolation.batch)))+
+  geom_point(size=6, alpha=0.6)+
+  theme_bw()+
+  labs(title = "MDS plot")+
+  theme(plot.title = element_text(size = rel(1.5), hjust=0.5))
+
+MDS_colored_DPC
+
+```
+
+
+##DE analysis using edgeR GLM
+
+* Due to samples separation by sex in the MDS plots, I provided sex as a covariate to the model to regress its effects out. I'll explore the sex-specific effects separately. 
+
+
+```{r RNA-seq 12, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+test.data <- count_data_UCSC[, 7:21]
+rownames(test.data) <- count_data_UCSC$Geneid
+
+Condition <- ifelse(metadata$Condition == "Ctrl", 1, 2)
+Sex <- ifelse(metadata$Sex == "M", 1, 2)
+
+#design <- model.matrix(~as.factor(Sex), as.factor(Condition))
+design <- model.matrix(~as.factor(Condition))
+
+
+y <- DGEList(counts=test.data, group=as.factor(Condition))
+
+keep <- rowSums(cpm(y)>min.cpm) >=2 #keeps only genes expressed in above min.cpm in at least 2 libraries in each group 
+y <- y[keep, , keep.lib.sizes=FALSE]
+y <- estimateGLMCommonDisp(y,design)
+y <- estimateGLMTrendedDisp(y,design)
+y <- estimateGLMTagwiseDisp(y,design)
+fit <- glmFit(y,design) 
+lrt <- glmLRT(fit) # Genewise Negative Binomial Generalized Linear Models.
+
+glm.output <- topTags(lrt, n=Inf)
+#write.table(glm.output$table, "DE_Full_PolyIC.txt", sep="\t", col.names=T, row.names=T, quote=F)
+glm.output.full_UCSC <- glm.output$table
+
+glm.output.full_UCSC$gene_name <- rownames(glm.output.full_UCSC)
+rownames(glm.output.full_UCSC) <- NULL
+
+volcano_plot_text(glm.output.full_UCSC, "DE analysis with UCSC Rn6 genome")
+
+```
+
+
+
+## Testing concordance between Ensembl and UCSC aligned DE
+
+* The Ensembl and UCSC alikgnments are highly concordant
+* The Ensembl dataset contains 19552 genes, UCSC 14211 genes. Merged data frame has 13527 genes.
+
+```{r RNA-seq 13, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+#head(glm.output.full_En)
+#head(glm.output.full_UCSC)
+
+#dim(glm.output.full_En)
+#dim(glm.output.full_UCSC)
+
+#intersect(glm.output.full_En$gene_name, glm.output.full_UCSC$gene_name)
+
+df_En <- glm.output.full_En[,c(2,3,6,7)]
+
+df_UC <- glm.output.full_UCSC[, c(6,1,4,5)]
+
+#head(df_En)
+#head(df_UC)
+
+colnames(df_En) <- paste0(colnames(df_En), "_", "En")
+colnames(df_UC) <- paste0(colnames(df_UC), "_", "UC")
+
+df <- merge(df_En, df_UC, by.x = "gene_name_En", by.y = "gene_name_UC")
+
+#dim(glm.output.full_En) 
+#dim(glm.output.full_UCSC)
+#dim(df)
+
+
+
+df$Significance <- ifelse(df$PValue_En, "Non significant", "")
+df$Significance <- ifelse(df$PValue_En < 0.05, "Significant in Ensembl", df$Significance)
+df$Significance <- ifelse(df$PValue_UC < 0.05, "Significant in UCSC", df$Significance)
+df$Significance <- ifelse(df$PValue_UC < 0.05 & df$PValue_En, "Significant in Ensembl and UCSC", df$Significance)
+
+
+ggplot()+
+  geom_point(data = filter(df, Significance == "Non significant"), 
+             aes(x = logFC_En, y = logFC_UC, color = Significance), alpha = 0.5)+
+  geom_point(data = filter(df, Significance == "Significant in Ensembl"), 
+             aes(x = logFC_En, y = logFC_UC, color = Significance), alpha = 0.5)+
+  geom_point(data = filter(df, Significance == "Significant in UCSC"), 
+             aes(x = logFC_En, y = logFC_UC, color = Significance), alpha = 0.5)+
+  geom_point(data = filter(df, Significance == "Significant in Ensembl and UCSC"), 
+             aes(x = logFC_En, y = logFC_UC, color = Significance), alpha = 0.5)+
+  theme_bw()
+
+#save.image("G:/Shared drives/Nord Lab - Personal Folders/Karol/MAA, new libraries/Data analysis/MAA_1.RData")
+
+```
+
+## RPKM plots of MAA target genes
+```{r RNA-seq 14, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+#Target antibody antigens in IDDRC grant
+# lactate dehydrogenase A and B, LDH-A, LDH-B
+# guanine deaminase (GDA)
+# stress-induced phosphoprotein 1 (STIP1)
+# collapsin response mediator proteins 1 and 2 (CRMP1, CRMP2)
+# Y-box binding protein 1 (YBX1)
+# neuron specific enolase (NSE)
+#"LDH-A, LDH-B, STIP1, and CRMP1 were noted as the primary antigens recognized by the ASD-specific MA"
+#"We then created the first truly representative animal model of MAR ASD by injecting mouse dams with peptides synthesized to contain epitopes for LDH A and B, STIP1 and CRMP1, epitopes that are recognized by women with antibodies to LDH A and B, STIP1, and CRMP1"
+
+#Analyzed samples were exposed to LDHA/B, CRMP1 and STIP1 autoantibodies.
+
+###  Ensembl  ###
+# Gene lengths 
+
+gene.lengths_En <- count_data$Length 
+#RPKM calculation
+gm_En <- as.matrix(count_data[,c(7:21)])
+rownames(gm_En) <- count_data$Geneid
+rpkm.data_En <- rpkm(gm_En, gene.length=gene.lengths_En, log=T, prior.count=.25)
+rpkm.data_En <- as.data.frame(rpkm.data_En)
+rpkm.data_En$gene_id <- rownames(rpkm.data_En)
+
+rpkm.data_En2 <- merge(rpkm.data_En, my_gene[,c(2,3)],  by.x = "gene_id", by.y = "gene_id")
+#I can't have duplicated row names, so I'm replacing them with gene_ids.
+rpkm.data_En2$gene_name <- ifelse(duplicated(rpkm.data_En2$gene_name) == TRUE, as.character(rpkm.data_En2$gene_id), as.character(rpkm.data_En2$gene_name)) 
+
+rownames(rpkm.data_En2) <- rpkm.data_En2$gene_name
+rpkm.data_En2$gene_id <- NULL
+rpkm.data_En2$gene_name <- NULL
+rpkm.data_En2 <- as.matrix(rpkm.data_En2)
+
+
+### UCSC ###
+# Gene lengths 
+gene.lengths_UCSC <- count_data_UCSC$Length 
+#RPKM calculation
+gm_UCSC <- as.matrix(count_data_UCSC[,c(7:21)])
+rownames(gm_UCSC) <- count_data_UCSC$Geneid
+rpkm.data_UCSC <- rpkm(gm_UCSC, gene.length=gene.lengths_UCSC, log=T, prior.count=.25)
+
+
+# RPKM box #
+
+rpkm_box_plot <- function(d, x){
+#x <- "Vegfa"  
+  
+rpkm_test <- as.data.frame(melt(d[x,]))
+colnames(rpkm_test) <- "RPKM"
+rpkm_test_w_info <- cbind(rpkm_test, "Condition" = metadata[,"Condition"])
+rpkm_test_w_info <- cbind(rpkm_test_w_info, "Sex" = metadata[,"Sex"])
+rpkm_test_w_info <- cbind(rpkm_test_w_info, "RNA.isolation.batch" = metadata[,"RNA.isolation.batch"])
+rpkm_test_w_info <- cbind(rpkm_test_w_info, "Lane" = metadata[,"Lane"])
+
+j_brew_colors <- brewer.pal(n = 8, name = "Paired")[c(2,6)]
+
+ggplot(rpkm_test_w_info, aes(x = Condition, y= RPKM, colour=Condition))+
+  geom_point(size=2)+
+  geom_boxplot(alpha=0, position="identity")+
+  theme_bw()+
+  theme(axis.text.x=element_text(angle=50, vjust=0.9, hjust=1, size=12, face="bold"))+
+  labs(title= x, x="")+
+  theme(plot.title = element_text(size = rel(2), hjust=0.5))+
+  scale_color_manual(values = j_brew_colors)+
+  scale_fill_manual(values = j_brew_colors)
+
+}
+
+
+#LDH A and B, STIP1 and CRMP1
+
+#rpkm_box_plot(rpkm.data_En, "Ldha")
+
+pl <- lapply(c("Ldha", "Ldhb", "Stip1", "Crmp1"), function(x)
+       rpkm_box_plot(rpkm.data_En2, x))
+
+ml <- marrangeGrob(pl, nrow=2, ncol=2, layout_matrix = rbind(c(1:2), c(3:4)), top=textGrob("Ensembl alignment", gp=gpar(fontsize=20)))
+ml
+
+pl <- lapply(c("Ldha", "Ldhb", "Stip1", "Crmp1"), function(x)
+       rpkm_box_plot(rpkm.data_UCSC, x))
+
+ml <- marrangeGrob(pl, nrow=2, ncol=2, layout_matrix = rbind(c(1:2), c(3:4)), top=textGrob("UCSC alignment", gp=gpar(fontsize=20)))
+ml
+
+
+```
+
+
+## DE analysis including sex covariate
+
+* After applying the sex covatriate DE dataframes have the following sizes: Ensembl 13917, UCSC 14211. Merged dataframe contains 13917 genes. 
+
+```{r RNA-seq 15, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+### Ensembl ###
+
+Condition <- ifelse(metadata$Condition == "Ctrl", 1, 2)
+Sex <- as.factor(ifelse(metadata$Sex == "M", 1, 2))
+
+design <- model.matrix(~as.factor(Sex), as.factor(Condition))
+
+y <- DGEList(counts=test.data, group=as.factor(Condition))
+
+keep <- rowSums(cpm(y)>min.cpm) >=2 #keeps only genes expressed in above min.cpm in at least 2 libraries in each group 
+y <- y[keep, , keep.lib.sizes=FALSE]
+y <- estimateGLMCommonDisp(y,design)
+y <- estimateGLMTrendedDisp(y,design)
+y <- estimateGLMTagwiseDisp(y,design)
+fit <- glmFit(y,design) 
+lrt <- glmLRT(fit) # Genewise Negative Binomial Generalized Linear Models.
+
+glm.output <- topTags(lrt, n=Inf)
+#write.table(glm.output$table, "DE_Full_PolyIC.txt", sep="\t", col.names=T, row.names=T, quote=F)
+glm.output.full <- glm.output$table
+
+glm.output.full$gene_name <- rownames(glm.output.full)
+rownames(glm.output.full) <- NULL
+
+#dim(glm.output.full)
+#dim(my_gene)
+
+glm.output.full2 <- merge(glm.output.full, my_gene[,c(2,3)], by.x = "gene_name", by.y = "gene_name")
+glm.output.full3 <- glm.output.full2[,c(1, 7, 2:6)]
+colnames(glm.output.full3) <- c("gene_id", "gene_name", "logFC", "logCPM", "LR", "PValue", "FDR")
+glm.output.full_En_Sex <-  glm.output.full3
+
+
+### UCSC ###
+
+test.data <- count_data_UCSC[, 7:21]
+rownames(test.data) <- count_data_UCSC$Geneid
+
+Condition <- ifelse(metadata$Condition == "Ctrl", 1, 2)
+Sex <- ifelse(metadata$Sex == "M", 1, 2)
+
+design <- model.matrix(~as.factor(Sex), as.factor(Condition))
+
+y <- DGEList(counts=test.data, group=as.factor(Condition))
+
+keep <- rowSums(cpm(y)>min.cpm) >=2 #keeps only genes expressed in above min.cpm in at least 2 libraries in each group 
+y <- y[keep, , keep.lib.sizes=FALSE]
+y <- estimateGLMCommonDisp(y,design)
+y <- estimateGLMTrendedDisp(y,design)
+y <- estimateGLMTagwiseDisp(y,design)
+fit <- glmFit(y,design) 
+lrt <- glmLRT(fit) # Genewise Negative Binomial Generalized Linear Models.
+
+glm.output <- topTags(lrt, n=Inf)
+#write.table(glm.output$table, "DE_Full_PolyIC.txt", sep="\t", col.names=T, row.names=T, quote=F)
+glm.output.full_UCSC_Sex <- glm.output$table
+
+glm.output.full_UCSC_Sex$gene_name <- rownames(glm.output.full_UCSC_Sex)
+rownames(glm.output.full_UCSC_Sex) <- NULL
+
+### Testing concordance ###
+
+df_En <- glm.output.full_En_Sex[,c(1,3,6,7)]
+df_UC <- glm.output.full_UCSC_Sex[, c(6,1,4,5)]
+
+colnames(df_En) <- paste0(colnames(df_En), "_", "En")
+colnames(df_UC) <- paste0(colnames(df_UC), "_", "UC")
+
+df <- merge(df_En, df_UC, by.x = "gene_id_En", by.y = "gene_name_UC")
+
+nrow(df_En)
+nrow(df_UC)
+nrow(df)
+
+df$Significance <- ifelse(df$PValue_En, "Non significant", "")
+df$Significance <- ifelse(df$PValue_En < 0.05, "Significant in Ensembl", df$Significance)
+df$Significance <- ifelse(df$PValue_UC < 0.05, "Significant in UCSC", df$Significance)
+df$Significance <- ifelse(df$PValue_UC < 0.05 & df$PValue_En, "Significant in Ensembl and UCSC", df$Significance)
+
+ggplot()+
+  geom_point(data = filter(df, Significance == "Non significant"), 
+             aes(x = logFC_En, y = logFC_UC, color = Significance), alpha = 0.5)+
+  geom_point(data = filter(df, Significance == "Significant in Ensembl"), 
+             aes(x = logFC_En, y = logFC_UC, color = Significance), alpha = 0.5)+
+  geom_point(data = filter(df, Significance == "Significant in UCSC"), 
+             aes(x = logFC_En, y = logFC_UC, color = Significance), alpha = 0.5)+
+  geom_point(data = filter(df, Significance == "Significant in Ensembl and UCSC"), 
+             aes(x = logFC_En, y = logFC_UC, color = Significance), alpha = 0.5)+
+  theme_bw()
+
+
+### Sex stratified DE in the Ensembl dataset ### 
+
+DE_En_Sex_stratified <- function(s){
+Condition <- ifelse(metadata$Condition == "Ctrl", 1, 2)[which(metadata$Sex == s)]
+
+design <- model.matrix(~as.factor(Condition))
+
+y <- DGEList(counts=test.data[, which(metadata$Sex == s)], group=as.factor(Condition))
+
+keep <- rowSums(cpm(y)>min.cpm) >=2 #keeps only genes expressed in above min.cpm in at least 2 libraries in each group 
+y <- y[keep, , keep.lib.sizes=FALSE]
+y <- estimateGLMCommonDisp(y,design)
+y <- estimateGLMTrendedDisp(y,design)
+y <- estimateGLMTagwiseDisp(y,design)
+fit <- glmFit(y,design) 
+lrt <- glmLRT(fit) # Genewise Negative Binomial Generalized Linear Models.
+
+glm.output <- topTags(lrt, n=Inf)
+#write.table(glm.output$table, "DE_Full_PolyIC.txt", sep="\t", col.names=T, row.names=T, quote=F)
+glm.output.full <- glm.output$table
+
+glm.output.full$gene_name <- rownames(glm.output.full)
+rownames(glm.output.full) <- NULL
+
+#dim(glm.output.full)
+#dim(my_gene)
+
+glm.output.full2 <- merge(glm.output.full, my_gene[,c(2,3)], by.x = "gene_name", by.y = "gene_name")
+glm.output.full3 <- glm.output.full2[,c(1, 7, 2:6)]
+colnames(glm.output.full3) <- c("gene_id", "gene_name", "logFC", "logCPM", "LR", "PValue", "FDR")
+glm.output.full3
+}
+
+glm.output.full_En_Male <- DE_En_Sex_stratified("M")
+glm.output.full_En_Female <- DE_En_Sex_stratified("F")
+
+
+### Sex stratified DE in the UCSC dataset ###
+
+DE_UCSC_Sex_stratified <- function(s){
+test.data <- count_data_UCSC[, 7:21]
+test.data <- test.data[ ,which(metadata$Sex == s)]
+
+rownames(test.data) <- count_data_UCSC$Geneid
+
+Condition <- ifelse(metadata$Condition == "Ctrl", 1, 2)[which(metadata$Sex == s)]
+
+design <- model.matrix(~as.factor(Condition))
+
+y <- DGEList(counts=test.data, group=as.factor(Condition))
+
+keep <- rowSums(cpm(y)>min.cpm) >=2 #keeps only genes expressed in above min.cpm in at least 2 libraries in each group 
+y <- y[keep, , keep.lib.sizes=FALSE]
+y <- estimateGLMCommonDisp(y,design)
+y <- estimateGLMTrendedDisp(y,design)
+y <- estimateGLMTagwiseDisp(y,design)
+fit <- glmFit(y,design) 
+lrt <- glmLRT(fit) # Genewise Negative Binomial Generalized Linear Models.
+
+glm.output <- topTags(lrt, n=Inf)
+#write.table(glm.output$table, "DE_Full_PolyIC.txt", sep="\t", col.names=T, row.names=T, quote=F)
+x <- glm.output$table
+
+x$gene_name <- rownames(x)
+rownames(x) <- NULL
+x
+}
+
+glm.output.full_UCSC_Male <- DE_UCSC_Sex_stratified("M")
+glm.output.full_UCSC_Female <- DE_UCSC_Sex_stratified("F")
+
+
+```
+
+## Numbers of DE genes in various DE analysis iterations
+
+```{r RNA-seq 16, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+n_of_DE_genes_barplot <- function(x, title){
+#x <- glm.output.full_En
+
+P_Up <- nrow(filter(x, PValue < 0.05, logFC > 0))
+P_Down <- nrow(filter(x, PValue < 0.05, logFC < 0))  
+FDR_Up <- nrow(filter(x, FDR< 0.05, logFC > 0))
+FDR_Down <- nrow(filter(x, FDR< 0.05, logFC < 0))
+  
+df <- melt(data.frame("P_Up" = P_Up,
+                 "P_Down" = P_Down,
+                 "FDR_Up" = FDR_Up,
+                 "FDR_Down" = FDR_Down))
+df$metric <- c(rep("P", 2), rep("FDR", 2))
+df$dir <- c("Up", "Down", "Up", "Down")
+
+ggplot(df, aes(fill=variable, group=dir, x=dir, y=value))+
+  geom_bar(position = "dodge",  stat="identity", color="black")+
+  theme_bw()+
+  scale_fill_manual(values=c("#eb5e60", "#62a0ca", "#E31A1C", "#1F78B4"))+
+  theme(legend.title=element_blank())+
+  labs(title=title, x="", y="")+
+  theme(plot.title = element_text(size = rel(1.2), hjust=0.5))+
+  geom_text(aes(label=value), position=position_dodge(width=0.9), hjust=-0.2)+
+  coord_flip()+
+  theme(panel.border = element_blank(),
+        legend.position = "none",
+        axis.ticks = element_blank(),
+        axis.text  = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+}
+
+p1 <- n_of_DE_genes_barplot(glm.output.full_En, "N of DE genes, Ensembl")
+p2 <- n_of_DE_genes_barplot(glm.output.full_UCSC, "N of DE genes, UCSC")
+
+p3 <- n_of_DE_genes_barplot(glm.output.full_En_Sex, "N of DE genes, Ensembl + Sex cov.")
+p4 <- n_of_DE_genes_barplot(glm.output.full_UCSC_Sex, "N of DE genes, UCSC + Sex cov.")
+
+p5 <- n_of_DE_genes_barplot(glm.output.full_En_Male, "N of DE genes, Ensembl Males")
+p6 <- n_of_DE_genes_barplot(glm.output.full_En_Female, "N of DE genes, Ensembl Females")
+
+p7 <- n_of_DE_genes_barplot(glm.output.full_UCSC_Male, "N of DE genes, UCSC Males")
+p8 <- n_of_DE_genes_barplot(glm.output.full_UCSC_Female, "N of DE genes, UCSC Females")
+
+
+pl <- list(p1, p2, p3, p4, p5, p7, p6, p8)
+
+ml <- marrangeGrob(pl, nrow=4, ncol=2, layout_matrix = rbind(c(1:2), c(3:4), c(5:6), c(7:8)), top = "", bottom = "Red = Upregulated, Blue = Downregulated, Lighter color P < 0.05, Darker color FDR < 0.05")
+ml
+
+```
+
+##Gene ontology analysis of FDR DE genes
+
+* I'm looking at the DE Ensembl and UCSC datasets without sex covariates, as they seem to be the most inclusive. 
+
+```{r RNA-seq 17, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+# Let's look at DE genes passing FDR < 0.05 
+
+FDR_Up_En <- as.character(filter(arrange(glm.output.full_En, FDR), FDR < 0.05, logFC > 0)$gene_name)
+FDR_Down_En <- as.character(filter(arrange(glm.output.full_En, FDR), FDR < 0.05, logFC < 0)$gene_name)
+
+FDR_Up_UCSC <- as.character(filter(glm.output.full_UCSC, FDR < 0.05, logFC > 0)$gene_name)
+FDR_Down_UCSC <- as.character(filter(glm.output.full_UCSC, FDR < 0.05, logFC < 0)$gene_name)
+
+#FDR_Up_En
+#FDR_Up_UCSC
+
+#intersect(FDR_Up_En, FDR_Up_UCSC)
+
+#FDR_Down_En
+#FDR_Down_UCSC
+
+#length(FDR_Up_En)
+#length(FDR_Down_En)
+#length(FDR_Up_UCSC)
+#length(FDR_Down_UCSC)
+
+
+rpkm_box_plot_2 <- function(d, x){
+  #d <- as.matrix(rpkm.data_En2)
+  #x <- "Abca8a"  
+  
+rpkm_test <- as.data.frame(melt(d[x,]))
+colnames(rpkm_test) <- "RPKM"
+rpkm_test_w_info <- cbind(rpkm_test, "Condition" = metadata[,"Condition"])
+rpkm_test_w_info <- cbind(rpkm_test_w_info, "Sex" = metadata[,"Sex"])
+rpkm_test_w_info <- cbind(rpkm_test_w_info, "RNA.isolation.batch" = metadata[,"RNA.isolation.batch"])
+rpkm_test_w_info <- cbind(rpkm_test_w_info, "Lane" = metadata[,"Lane"])
+
+j_brew_colors <- brewer.pal(n = 8, name = "Paired")[c(2,6)]
+
+ggplot(rpkm_test_w_info, aes(x = Condition, y= RPKM, colour=Condition))+
+  geom_point(size=2)+
+  geom_boxplot(alpha=0, position="identity")+
+  theme_bw()+
+  theme(axis.text.x=element_text(angle=50, vjust=0.9, hjust=1, size=12, face="bold"))+
+  labs(title= x, x="")+
+  theme(plot.title = element_text(size = rel(2), hjust=0.5))+
+  scale_color_manual(values = j_brew_colors)+
+  scale_fill_manual(values = j_brew_colors)+
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+}
+
+### Plots ###
+```
+
+### Upregulated FDR < 0.05 DE genes, Ensembl alignment
+```{r RNA-seq 18, fig.height = 10, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+pl <- lapply(FDR_Up_En, function(x)
+       rpkm_box_plot_2(rpkm.data_En2, x))
+ml <- marrangeGrob(pl, nrow=4, ncol=4, top = "Upregulated FDR < 0.05 DE genes, Ensembl alignment")
+ml
+
+```
+
+### Downregulated FDR < 0.05 DE genes, Ensembl alignment
+```{r RNA-seq 19, fig.height = 25, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+pl <- lapply(FDR_Down_En, function(x)
+       rpkm_box_plot_2(rpkm.data_En2, x))
+ml <- marrangeGrob(pl, nrow=9, ncol=4, top = "Downregulated FDR < 0.05 DE genes, Ensembl alignment")
+ml
+
+```
+
+### Upregulated FDR < 0.05 DE genes, UCSC alignment
+```{r RNA-seq 20, fig.height = 7.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+
+pl <- lapply(FDR_Up_UCSC, function(x)
+       rpkm_box_plot_2(rpkm.data_UCSC, x))
+ml <- marrangeGrob(pl, nrow=3, ncol=4, top = "Upregulated FDR < 0.05 DE genes, UCSC alignment")
+ml
+
+```
+
+### Downregulated FDR < 0.05 DE genes, UCSC alignment
+```{r RNA-seq 21, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=FALSE, fig.cap=""}
+
+
+pl <- lapply(FDR_Down_UCSC, function(x)
+       rpkm_box_plot_2(rpkm.data_UCSC, x))
+ml <- marrangeGrob(pl, nrow=11, ncol=4, top = "Downregulated FDR < 0.05 DE genes, UCSC alignment")
+ml
+
+```
+
+
+```{r RNA-seq 22, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+# GO BP split
+
+GO_analysis <- function(q, b, c) {
+
+  #q <- glm.output.full_UCSC
+  #b <- "upregulated"
+  
+library(topGO)
+  background.genes <- q$gene_name
+  geneUniverse <- background.genes
+  
+  if(b=="upregulated"){
+  test.genes <- filter(q, PValue < 0.05, logFC > 0)$gene_name
+  } else if (b=="downregulated"){
+    test.genes <- filter(q, PValue < 0.05, logFC < 0)$gene_name
+  } else {
+    print("Incorect fold change parameter")
+    stop()
+  }
+
+  genesOfInterest <- test.genes
+  geneList <- factor(as.integer(geneUniverse %in% genesOfInterest))
+  names(geneList) <- geneUniverse
+  myGOdata <- new("topGOdata", description="My project", ontology="BP", allGenes=geneList,  annot=annFUN.org,    mapping="org.Rn.eg.db", ID = "alias", nodeSize=20)
+  print(myGOdata)
+  
+resultFisher <- runTest(myGOdata, algorithm = "weight01", statistic = "fisher")
+#resultKS <- runTest(myGOdata, algorithm = "classic", statistic = "ks")
+#resultKS.elim <- runTest(myGOdata, algorithm = "elim", statistic = "ks")
+#classicKS = resultKS, elimKS = resultKS.elim, - add later
+
+allRes <- GenTable(myGOdata, classicFisher = resultFisher, orderBy = "classicFisher", topNodes = c)
+
+#showSigOfNodes(myGOdata, score(resultKS.elim), firstSigNodes = 5, useInfo = 'all')
+#nodes_plot <- recordPlot(showSigOfNodes(myGOdata, score(resultKS.elim), firstSigNodes = 5, useInfo = 'all'))
+
+#Building a df of DE genes belonging to top 20 GO BP caegories
+DE_genes_in_top_GO_cat <- function(r){
+ fisher.go <- allRes[r,1]
+ #print(allRes[x,c(1,2)])
+ fisher.ann.genes <- genesInTerm(myGOdata, whichGO=fisher.go)
+ df <- data.frame(GO.ID = allRes[r,c(1)], Term = allRes[r,c(2)], gene_name=intersect(as.character(fisher.ann.genes[[1]]), q$gene_name))
+ df <- filter(df, gene_name %in% test.genes)
+ df
+}
+
+list(allRes, lapply(1:20, DE_genes_in_top_GO_cat))
+}
+
+### This was run mostly to test the algorithm. The P value threshold is too inclusive. ###
+
+#Lot's of neural GO terms
+GO_BP_up_UCSC <- GO_analysis(glm.output.full_UCSC, "upregulated", 3327)
+
+# GABA signaling, amine transport, dopamine!, 
+GO_BP_down_UCSC <- GO_analysis(glm.output.full_UCSC, "downregulated", 3327)
+
+
+### I decided to settle on a more reasonable FDR < 0.2 ###
+
+#nrow(filter(glm.output.full_UCSC, FDR < 0.2, logFC > 0)) #43
+#nrow(filter(glm.output.full_UCSC, FDR < 0.2, logFC < 0)) #159
+
+
+GO_analysis_FDR_02 <- function(q, b, c) {
+
+  #q <- glm.output.full_UCSC
+  #b <- "upregulated"
+  
+library(topGO)
+  background.genes <- q$gene_name
+  geneUniverse <- background.genes
+  
+  if(b=="upregulated"){
+  test.genes <- filter(q, FDR < 0.2, logFC > 0)$gene_name
+  } else if (b=="downregulated"){
+    test.genes <- filter(q, FDR < 0.2, logFC < 0)$gene_name
+  } else {
+    print("Incorect fold change parameter")
+    stop()
+  }
+
+  genesOfInterest <- test.genes
+  geneList <- factor(as.integer(geneUniverse %in% genesOfInterest))
+  names(geneList) <- geneUniverse
+  myGOdata <- new("topGOdata", description="My project", ontology="BP", allGenes=geneList,  annot=annFUN.org,    mapping="org.Rn.eg.db", ID = "alias", nodeSize=20)
+  print(myGOdata)
+  
+resultFisher <- runTest(myGOdata, algorithm = "weight01", statistic = "fisher")
+#resultKS <- runTest(myGOdata, algorithm = "classic", statistic = "ks")
+#resultKS.elim <- runTest(myGOdata, algorithm = "elim", statistic = "ks")
+#classicKS = resultKS, elimKS = resultKS.elim, - add later
+
+allRes <- GenTable(myGOdata, classicFisher = resultFisher, orderBy = "classicFisher", topNodes = c)
+
+#showSigOfNodes(myGOdata, score(resultKS.elim), firstSigNodes = 5, useInfo = 'all')
+#nodes_plot <- recordPlot(showSigOfNodes(myGOdata, score(resultKS.elim), firstSigNodes = 5, useInfo = 'all'))
+
+#Building a df of DE genes belonging to top 20 GO BP caegories
+DE_genes_in_top_GO_cat <- function(r){
+ fisher.go <- allRes[r,1]
+ #print(allRes[x,c(1,2)])
+ fisher.ann.genes <- genesInTerm(myGOdata, whichGO=fisher.go)
+ df <- data.frame(GO.ID = allRes[r,c(1)], Term = allRes[r,c(2)], gene_name=intersect(as.character(fisher.ann.genes[[1]]), q$gene_name))
+ df <- filter(df, gene_name %in% test.genes)
+ df
+}
+
+list(allRes, lapply(1:20, DE_genes_in_top_GO_cat))
+}
+
+
+#
+GO_BP_up_UCSC_FDR_02 <- GO_analysis_FDR_02(glm.output.full_UCSC, "upregulated", 3327)
+
+#  
+GO_BP_down_UCSC_FDR_02 <- GO_analysis_FDR_02(glm.output.full_UCSC, "downregulated", 3327)
+
+#save.image("G:/Shared drives/Nord Lab - Personal Folders/Karol/MAA, new libraries/Data analysis/UCSC_Rn6_analysis/Workspace_1.RData")
+
+#rpkm_box_plot_2(rpkm.data_UCSC, "Th")
+
+#nrow(filter(glm.output.full_En, FDR < 0.2, logFC > 0))
+#nrow(filter(glm.output.full_En, FDR < 0.2, logFC < 0))
+
+#
+GO_BP_up_En_FDR_02 <- GO_analysis_FDR_02(glm.output.full_En, "upregulated", 3327)
+
+#  
+GO_BP_down_En_FDR_02 <- GO_analysis_FDR_02(glm.output.full_En, "downregulated", 3327)
+
+
+###
+#nrow(filter(glm.output.full_UCSC, FDR < 0.2, logFC > 0)) #43
+#nrow(filter(glm.output.full_UCSC, FDR < 0.2, logFC < 0)) #159
+
+
+#head(GO_BP_up_UCSC_FDR_02[[1]],20)
+#positive regulation of neuron apoptotic ...
+#antigen processing and presentation via ...
+#positive regulation of T cell mediated c...
+#positive regulation of cell cycle
+#
+
+#head(GO_BP_down_UCSC_FDR_02[[1]],20)
+#postsynaptic neurotransmitter receptor i...
+#vasoconstriction 
+#negative regulation of transforming grow...
+#response to unfolded protein
+#synaptic transmission, GABAergic
+#
+
+#glm.output.full_UCSC
+
+```
+
+## Tables of DE genes 
+
+### Ensembl reference
+
+```{r RNA-seq 23, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+datatable(arrange(glm.output.full_En, FDR), rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+### UCSC reference
+
+```{r RNA-seq 24, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+datatable(arrange(glm.output.full_UCSC[,c(6, 1:5)], FDR), rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+
+### Ensembl reference with sex covariate
+
+```{r RNA-seq 25, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+datatable(arrange(glm.output.full_En_Sex, FDR), rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+### UCSC reference with sex covariate
+
+```{r RNA-seq 26, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+datatable(arrange(glm.output.full_UCSC_Sex[,c(6, 1:5)], FDR), rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+### Ensembl reference - Males
+
+```{r RNA-seq 27, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+datatable(arrange(glm.output.full_En_Male, FDR), rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+### Ensembl reference - Females
+
+```{r RNA-seq 28, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+datatable(arrange(glm.output.full_En_Female, FDR), rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+
+### UCSC reference - Males
+
+```{r RNA-seq 29, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+datatable(arrange(glm.output.full_UCSC_Male[,c(6, 1:5)], FDR), rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+### UCSC reference - Females
+
+```{r RNA-seq 30, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+datatable(arrange(glm.output.full_UCSC_Female[,c(6, 1:5)], FDR), rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+
+
+## Tables of Enriched GO BP terms
+
+### Ensembl reference
+
+#### Upregulated
+```{r RNA-seq 31, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+datatable(GO_BP_up_En_FDR_02[[1]], rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+#### Downregulated
+```{r RNA-seq 32, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+datatable(GO_BP_down_En_FDR_02[[1]], rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+
+### UCSC reference
+
+#### Upregulated
+```{r RNA-seq 33, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+datatable(GO_BP_up_UCSC_FDR_02[[1]], rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+#### Downregulated
+```{r RNA-seq 34, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+datatable(GO_BP_down_UCSC_FDR_02[[1]], rownames = FALSE, filter="top", options = list(pageLength = 15, scrollX=T))
+
+```
+
+## Characterization of the top DE genes - UNSTRUCTURED 
+
+Please see comments in the code section.
+
+```{r RNA-seq 35, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+#All notes are based or copied from Genecards.
+
+#Upregulated En genes
+filter(arrange(glm.output.full_En, FDR), FDR < 0.05, logFC > 0)
+
+#Tubb3 - Tubulin Beta 3 Class III - Neural tubulin
+
+#LOC100360274 - novel gene of unidentified function
+
+#LOC100362027 - ribosomal protein L30-like
+
+#Dmgdh - Dimethylglycine Dehydrogenase, Mitochondrial - enzyme involved in the catabolism of choline
+
+#Abca8a - ATP-binding cassette, subfamily A
+
+#Enc1 - Ectodermal-Neural Cortex 1 - INTERESTING - This gene encodes a member of the kelch-related family of actin-binding proteins. The encoded protein plays a role in the oxidative stress response as a regulator of the transcription factor Nrf2, and expression of this gene may play a role in malignant transformation.
+
+#Rps2-ps2 - ribosomal protein S2, pseudogene 2
+
+#AC128618.1 - acyl-CoA thioesterase 1
+
+#Trim45 - Tripartite Motif Containing 45 - protein may function as a transcriptional repressor of the mitogen-activated protein kinase pathway
+
+#Ccdc77 - Coiled-Coil Domain Containing 77 - There is a case study with an ASD patient who has a deletion including this gene. There is only one paper on this gene on Pubmed. What a chance?? https://pubmed.ncbi.nlm.nih.gov/24613754/?from_single_result=Ccdc77 Deletion and gene upregulation do not make direct sense for the relevance to ASD though.   
+
+#AABR07005838.1 - Processed pseudogene
+
+#RGD1562652 - Unprocessed pseudogene
+
+#Dpysl5 - Dihydropyrimidinase Like 5 - VERY INTERESTING -  member of the CRMP (collapsing response mediator protein) family thought to be involved in neural development. Antibodies to the encoded protein were found in some patients with neurologic symptoms who had paraneoplastic syndrome. 
+
+#Upregulated UCSC genes
+filter(arrange(glm.output.full_UCSC, FDR), FDR < 0.05, logFC > 0)
+#Dmgdh, Abca8a, Trim45, Dpysl5,  Ccdc77 repeat from the Ensembl alignment.
+
+#Rpl38 - Ribosomal Protein L38
+
+#Acot1 - Acyl-CoA Thioesterase 1, the same as AC128618.1 in the Ensembl alignment.
+
+#Pkmyt1 - INTERESTING - Cell cycle slowdown!? Protein Kinase, Membrane Associated Tyrosine/Threonine 1 - membrane-associated kinase that negatively regulates the G2/M transition of the cell cycle by phosphorylating and inactivating cyclin-dependent kinase 1
+
+#RT1-CE16 - RT1 class I, locus CE16
+
+
+#Downregulated En genes
+filter(arrange(glm.output.full_En, FDR), FDR < 0.05, logFC < 0)
+#Mt-nd1 - Mitochondrially Encoded NADH:Ubiquinone Oxidoreductase Core Subunit 1 - Core subunit of the mitochondrial membrane respiratory chain NADH dehydrogenase (Complex I)
+
+#Pnpla1 - Patatin Like Phospholipase Domain Containing 1 - role in glycerophospholipid metabolism
+
+#Eef1a1 - Eukaryotic Translation Elongation Factor 1 Alpha 1 - enzymatic delivery of aminoacyl tRNAs to the ribosome.This isoform is identified as an autoantigen in 66% of patients with Felty syndrome.
+
+#RGD1564883 - 60S ribosomal protein L12-like
+
+#RGD1311744 - similar to RIKEN cDNA 5830475I06
+
+#Pdia4 - Protein Disulfide Isomerase Family A Member 4 - catalyze protein folding and thiol-disulfide interchange reactions
+
+#S100b - S100 Calcium Binding Protein B - involved in the regulation of a number of cellular processes such as cell cycle progression and differentiation. This protein may function in Neurite extension, proliferation of melanoma cells, stimulation of Ca2+ fluxes, inhibition of PKC-mediated phosphorylation, astrocytosis and axonal proliferation, and inhibition of microtubule assembly
+
+#Mt-nd5 - Mitochondrially Encoded NADH:Ubiquinone Oxidoreductase Core Subunit 5
+
+#RGD1304622 - 
+
+#AABR07000738.1 - 
+
+#Lyrm7 - LYR Motif Containing 7 - the protein encoded by this gene is a nuclear-encoded mitochondrial matrix protein that stabilizes UQCRFS1 and chaperones it to the CIII complex.
+
+#Tmem144 - Transmembrane Protein 144 - carbohydrate transmembrane transporter activity.
+
+#Rgs22 - Regulator Of G Protein Signaling 22 - 
+
+#Resp18 - Regulated Endocrine Specific Protein 18 - 
+
+#Ly6g6c - Lymphocyte Antigen 6 Family Member G6C - INTERESTING - LY6G6C belongs to a cluster of leukocyte antigen-6 (LY6) genes located in the major histocompatibility complex (MHC) class III region on chromosome 6
+
+#Dmc1 - DNA Meiotic Recombinase 1 - INTERESTING ? 
+
+#Pxk - PX Domain Containing Serine/Threonine Kinase Like - may be involved in synaptic transmission and the ligand-induced internalization and degradation of epidermal growth factors.
+
+#LOC100360791 - tumor protein, translationally-controlled 1
+
+#RGD1310852
+
+#Tnfrsf25 - TNF Receptor Superfamily Member 25 - INTERESTING -  This receptor is expressed preferentially in the tissues enriched in lymphocytes, and it may play a role in regulating lymphocyte homeostasis
+
+
+#Cobl - Cordon-Bleu WH2 Repeat Protein - The encoded actin regulator protein is required for growth and assembly of brush border microvilli that play a role in maintaining intestinal homeostasis. A similar protein in mouse functions in midbrain neural tube closure.
+
+#Hpcal4 - Hippocalcin Like 4 
+
+#Grem2 - Gremlin 2, DAN Family BMP Antagonist - may play a role in regulating organogenesis, body patterning, and tissue differentiation
+
+#Tcf15 - Transcription Factor 15 - found in the nucleus and may be involved in the early transcriptional regulation of patterning of the mesoderm.
+
+#Sdf2l1 - Stromal Cell Derived Factor 2 Like 1 - Gene Ontology (GO) annotations related to this gene include chaperone binding and misfolded protein binding.
+
+#Treh - Trehalase - 
+
+#Tes - Testin LIM Domain Protein - INTERESTING - This gene maps to a commom fragile site on chromosome 7q31.2 designated FRA7G. his protein is a negative regulator of cell growth and may act as a tumor suppressor. This scaffold protein may also play a role in cell adhesion, cell spreading and in the reorganization of the actin cytoskeleton.
+
+#Tppp3 - Tubulin Polymerization Promoting Protein Family Member 3 - INTERESTING?
+
+#Endod1 - Endonuclease Domain Containing 1 - INTERESTING?
+
+#Shh - Sonic Hedgehog Signaling Molecule - VERY INTERESTING, but the effect size seek a bit low? Basal expression of the gene is quite low. 
+
+#Siglec5 - Sialic Acid Binding Ig Like Lectin 5 - INTERESTING - The encoded protein is a member of the CD33-related subset of Siglecs and inhibits the activation of several cell types including monocytes, macrophages and neutrophils.
+
+#Coch - Cochlin - 
+
+#Scg2 - Secretogranin II - involved in the packaging or sorting of peptide hormones and neuropeptides into secretory vesicles.
+
+## UCSC aligned data - extra genes
+a <- as.character(filter(arrange(glm.output.full_En, FDR), FDR < 0.05, logFC < 0)$gene_name)
+
+b <- as.character(filter(arrange(glm.output.full_UCSC, FDR
+  ), FDR < 0.05, logFC < 0)$gene_name)
+
+intersect(a,b)
+setdiff(a, b)
+setdiff(b, a)
+
+#Crtam - Cytotoxic And Regulatory T Cell Molecule - INTERESTING but expressed at a very low level. Among its related pathways are Class I MHC mediated antigen processing and presentation and Innate Immune System. 
+
+#Hspa5 - Heat Shock Protein Family A (Hsp70) Member 5 - involved in the folding and assembly of proteins in the ER.
+
+#Mettl2b - Methyltransferase Like 2B
+
+#Sumo2 - Small Ubiquitin Like Modifier 2 - Decreased posttranslational modification?
+
+#Hsp90b1 - Heat Shock Protein 90 Beta Family Member 1 - 
+
+#Aldh1a7 - Aldehyde Dehydrogenase 1 Family Member A1 - Interesting, but has very low expression.
+
+#Znrd1as1 - Zinc Ribbon Domain Containing 1 Antisense, Pseudogene
+
+#Pafah2 - Platelet Activating Factor Acetylhydrolase 2 -  catalyzes the removal of the acetyl group at the SN-2 position of platelet-activating factor. 
+
+#Xbp1 - X-Box Binding Protein 1 - transcription factor that regulates MHC class II genes by binding to a promoter element referred to as an X box.
+
+#Dnajc27 - DnaJ Heat Shock Protein Family (Hsp40) Member C27 - 
+
+#Pnlip - Pancreatic Lipase - 
+
+#Slc47a1 - Solute Carrier Family 47 Member 1 - This gene is located within the Smith-Magenis syndrome region on chromosome 17
+
+#Calr - Calreticulin - 
+
+#Ceacam1 - CEA Cell Adhesion Molecule 1 - ell-cell adhesion molecule detected on leukocytes, epithelia, and endothelia. Roles in the differentiation and arrangement of tissue three-dimensional structure, angiogenesis, apoptosis, tumor suppression, metastasis, and the modulation of innate and adaptive immune responses.
+
+#Adra1d - Adrenoceptor Alpha 1D - 
+
+#Eps15 - Epidermal Growth Factor Receptor Pathway Substrate 15 - The protein is present at clatherin-coated pits and is involved in receptor-mediated endocytosis of EGF.
+
+#Crhbp - Corticotropin Releasing Hormone Binding Protein - 
+
+#Ctxn2 - Cortexin 2 - 
+
+#Dynlrb2 - Dynein Light Chain Roadblock-Type 2 - 
+
+#Slitrk6 - SLIT And NTRK Like Family Member 6 - This protein functions as a regulator of neurite outgrowth required for normal hearing and vision.
+
+#Hid1 - HID1 Domain Containing - 
+
+```
+
+
+
+```{r RNA-seq 36, fig.height = 27.5, fig.width = 14, fig.align = 'center', error=FALSE, warning=FALSE, message=FALSE, echo=TRUE, dev='png', dpi=72, cache=TRUE, fig.cap=""}
+
+#There is a better way to do this, but it will have to v for the data exploration.
+
+rpkm_box_plot_sex <- function(d, x){
+  #d <- as.matrix(rpkm.data_En2)
+  #x <- "Abca8a"  
+  
+rpkm_test <- as.data.frame(melt(d[x,]))
+colnames(rpkm_test) <- "RPKM"
+rpkm_test_w_info <- cbind(rpkm_test, "Condition" = metadata[,"Condition"])
+rpkm_test_w_info <- cbind(rpkm_test_w_info, "Sex" = metadata[,"Sex"])
+rpkm_test_w_info <- cbind(rpkm_test_w_info, "RNA.isolation.batch" = metadata[,"RNA.isolation.batch"])
+rpkm_test_w_info <- cbind(rpkm_test_w_info, "Lane" = metadata[,"Lane"])
+
+j_brew_colors <- brewer.pal(n = 8, name = "Paired")[c(2,6)]
+
+#This is just ensuring the desired order on the plot
+
+rpkm_test_w_info$Sex<- ifelse(rpkm_test_w_info$Sex == "M", "1_M", "2_F")
+
+rpkm_test_w_info$Condition_Sex <- paste0(rpkm_test_w_info$Sex, "_", rpkm_test_w_info$Condition)
+
+
+ggplot(rpkm_test_w_info, aes(x = Condition_Sex, y= RPKM, colour=Condition, shape = Sex))+
+  geom_point(size=2)+
+  geom_boxplot(alpha=0, position="identity")+
+  theme_bw()+
+  theme(axis.text.x=element_text(angle=50, vjust=0.9, hjust=1, size=12, face="bold"))+
+  labs(title= x, x="")+
+  theme(plot.title = element_text(size = rel(2), hjust=0.5))+
+  scale_color_manual(values = j_brew_colors)+
+  scale_fill_manual(values = j_brew_colors)+
+  theme(legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())+
+  scale_x_discrete(breaks= c("1_M_Ctrl", "1_M_MAR", "2_F_Ctrl", "2_F_MAR"), labels=c("Male Ctrl", "Male MAR", "Female Ctrl", "Female MAR"))+
+  scale_shape_manual(values=c(17, 19))
+
+}
+
+
+
+Male_En_genes <- filter(arrange(glm.output.full_En_Male, FDR), FDR < 0.05)$gene_id
+
+
+pl <- lapply(Male_En_genes, function(x)
+       rpkm_box_plot_sex(rpkm.data_En2, x))
+
+ml <- marrangeGrob(pl, nrow=4, ncol=2, top=textGrob("Ensembl male genes", gp=gpar(fontsize=20)))
+ml
+
+#Dpysl5 - Dihydropyrimidinase Like 3 - INTERESTING - (GO) annotations related to this gene include hydrolase activity and phosphoprotein binding. An important paralog of this gene is CRMP1. - One of the MAR targets.
+
+#Avil - Advillin - It binds actin and may play a role in the development of neuronal cells that form ganglia.
+
+#Mettl2b - Methyltransferase Like 2B- 
+
+#Frzb - Frizzled Related Protein - 
+
+#Ly6g6c - Lymphocyte Antigen 6 Family Member G6C - LY6G6C belongs to a cluster of leukocyte antigen-6 (LY6) genes located in the major histocompatibility complex (MHC) class III region on chromosome 6.
+
+#Pdia4 - 
+
+#Rsad2 - Radical S-Adenosyl Methionine Domain Containing 2 - VERY INTERESTING, but its expression is rather low. - Among its related pathways are Innate Immune System and Toll-like Receptor Signaling Pathway. an inhibit a wide range of DNA and RNA viruses, including human cytomegalovirus (HCMV), hepatitis C virus (HCV), west Nile virus (WNV), dengue virus, sindbis virus, influenza A virus, sendai virus, vesicular stomatitis virus (VSV), and human immunodeficiency virus (HIV-1). Displays antiviral activity against influenza A virus by inhibiting the budding of the virus from the plasma membrane by disturbing the lipid rafts. This is accomplished, at least in part, through binding and inhibition of the enzyme farnesyl diphosphate synthase (FPPS), which is essential for the biosynthesis of isoprenoid-derived lipids. Promotes TLR7 and TLR9-dependent production of IFN-beta production in plasmacytoid dendritic cells (pDCs) by facilitating Lys-63'-linked ubiquitination of IRAK1. Plays a role in CD4+ T-cells activation and differentiation. Facilitates T-cell receptor (TCR)-mediated GATA3 activation and optimal T-helper 2 (Th2) cytokine production by modulating NFKB1 and JUNB activities. Can inhibit secretion of soluble proteins. 
+
+Female_En_genes <- filter(arrange(glm.output.full_En_Female, FDR), FDR < 0.05)$gene_id
+
+
+pl <- lapply(Female_En_genes, function(x)
+       rpkm_box_plot_sex(rpkm.data_En2, x))
+
+ml <- marrangeGrob(pl, nrow=4, ncol=4, top=textGrob("Ensembl female genes", gp=gpar(fontsize=20)))
+ml
+
+#Pnpla1 - covered earlier. 
+
+#Ccdc77 - also covered earlier. This gene is deleted in some ASD patients. VERY INTERESTING. MAR Females seem to upregulate this gene more robustly than males. 
+
+#Pomgnt1 - Protein O-Linked Mannose N-Acetylglucosaminyltransferase 1 (Beta 1,2-) - participates in O-mannosyl glycosylation. Upregulation SPECIFIC TO FEMALES.
+
+#Tspan1 - Tetraspanin 1 - regulation of cell development, activation, growth and motility. Upregulation SPECIFIC TO FEMALES.
+
+#Tfap2c - Transcription Factor AP-2 Gamma -  role in the development of the eyes, face, body wall, limbs, and neural tube. Upregulation SPECIFIC TO FEMALES.
+
+#Rexo4 - REX4 Homolog, 3'-5' Exonuclease - 
+
+#S100b - covered earlier. DE not sex specific.
+
+#Calcr - Calcitonin Receptor - The encoded protein is involved in maintaining calcium homeostasis and in regulating osteoclast-mediated bone resorption.
+
+#Resp18 - Regulated Endocrine Specific Protein 18 - covered earlier.
+
+#Retsat - Retinol Saturase - Among its related pathways are Drug metabolism - cytochrome P450 and Vitamin A and Carotenoid Metabolism. I wouldn't trust this DE because of the variability between sexes. 
+
+#Nap1l5 - Nucleosome Assembly Protein 1 Like 5 - 
+
+#RT1-CE16 - covered earlier
+
+#Slc7a7 - Solute Carrier Family 7 Member 7 - cationic amino acid transporter
+
+#Znrd1as1 - Zinc Ribbon Domain Containing 1 Antisense, Pseudogene - 
+
+#Pdia4 - Protein Disulfide Isomerase Family A Member 4 - covered earlier. Downregulated in both sexes. 
+
+```
+
